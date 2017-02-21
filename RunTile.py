@@ -23,10 +23,8 @@ def CopyAstrometry():
 	subprocess.call(['ifdh','cp','-D',__config__['path_astrometry'],'./'])
 	subprocess.call(['ifdh','cp','-D',__config__['path_slr'],'./'])
 	subprocess.call(['ifdh','cp','-D',__config__['path_incat'],'./'])
-	subprocess.call(['ifdh','cp','-D',__config__['balrog_files'],'./'])
 
 	subprocess.call(['tar','-zxvf',__config__['path_astrometry'].split('/')[-1],'--strip-components','1'])
-	subprocess.call(['tar','-zxvf',__config__['balrog_files'].split('/')[-1]])
 
 def DownloadImages():
 	"""
