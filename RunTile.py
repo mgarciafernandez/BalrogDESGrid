@@ -135,7 +135,11 @@ if __name__ == '__main__':
 	CopyAstrometry()
 	print 'Copied astrometry files.'
 
-	images, psfs, bands, = DownloadImages()
+	images, psfs, bands = DownloadImages()
+	for img_ in xrange(len(images)):
+		images[img_] = images[img_].split('/')[-1].replace('.fits.fz','.fits')
+	for psf_ in xrange(len(psfs)):
+		psfs[psf_] = psfs[psf_].split('/')[-1]
 	print 'Downloaded images.'
 
 	positions = GenerateRandomPosition()
