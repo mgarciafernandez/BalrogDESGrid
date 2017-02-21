@@ -67,6 +67,7 @@ def GenerateRandomPosition():
 	"""
 	Generate Random positions and sets at the config file the number of galaxies of the tile.
 	"""
+	subprocess.call(['rm','-f','tilemane.fits',__tilename__+'.fits'])
 
 	subprocess.call(['./SetTilename.py',__tilename__])
 	subprocess.call(['./BuildPosGrid.py','--seed',__config__['seed_position'],'--density',__config__['density'],'--tiles','tilename.fits','--tilecol','tilename','--outdir','./'])
