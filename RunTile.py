@@ -104,9 +104,8 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
 	command['ngal'] = ngal
 	command['tile'] = __tilename__
-	command['slr']  = __config__['path_slr'].split('/')[-1]
-	command['cat']  = __config__['path_incat'].split('/')[-1]
 	command['poscat'] = '%s.fits' % __tilename__
+	command['seed'] = __config__['seed_balrog']
 
 	for band_ in xrange(1,len(bands)):
 		band = bands[band_]
@@ -122,7 +121,7 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 		command['band'] = band
 
 		RunBalrog(command)
-		
+
 
 if __name__ == '__main__':
 
@@ -149,5 +148,6 @@ if __name__ == '__main__':
 	print 'Positions generated.'
 
 	DoNosimRun(positions,images,psfs,bands)
+	
 
 	print 'Done tile:',__tilename__
