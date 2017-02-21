@@ -84,19 +84,6 @@ def GetZeropoint(image,band, ext=0, zpkey='SEXMGZPT'):
 	else:
 		header = pyfits.open(image)[ext].header
 		return header[zpkey]
-def Dict2Cmd(d):
-
-    l = ['python', '-s', __config__['balrog_path']]
-
-    for key in d.keys():
-        if type(d[key])==bool:
-            if d[key]:
-                l.append('--%s' %key)
-        else:
-            l.append('--%s' %key)
-            l.append(str(d[key]))
-
-    return l
 
 def RunBalrog(d):
 	cmd = []
