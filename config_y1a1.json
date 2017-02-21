@@ -25,6 +25,6 @@
 		"slrdir": ".",
 		"sexconfig": "20150806_sex.config"},
 
-	"balrog_path":"/cvmfs/lsst.opensciencegrid.org/fnal/products/Linux64/external/balrog/2015-05-19/balrog.py"
+	"balrog_path":"/cvmfs/lsst.opensciencegrid.org/fnal/products/Linux64/external/balrog/2015-05-19/balrog.py",
 	"log":"balrog_log.log"
 }
