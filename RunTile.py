@@ -4,6 +4,7 @@ import sys
 import subprocess
 import json
 import desdb
+import pyfits
 
 #------------------ GLOBAL VARIABLES ---------------
 
@@ -15,7 +16,7 @@ __bands__    = ['g','r','i','z','Y']
 
 def CopyAstrometry():
 	"""
-	Copy the SExtractor & SWARP config files to the current working node.
+	Copy the SExtractor, zeropoints & SWARP config files to the current working node.
 	"""
 
 	subprocess.call(['ifdh','cp','-D',__config__['path_astrometry'],'./'])
@@ -26,7 +27,7 @@ def CopyAstrometry():
 
 def DownloadImages():
 	"""
-	Read from the database where are the images and PSF files at the database and downloads them into the working node.
+	Read from the database where are the images and PSF files at the database and downloads them into the working node. Then uncompress the files with funpack.
 	"""
 
 	df = desdb.files.DESFiles(fs='net')
@@ -37,7 +38,6 @@ def DownloadImages():
 	bands  = []
 
 	for band_ in ['det']+__bands__:
-	#for band_ in __bands__:
 		if band_ == 'det':
 			d = conn.quick("SELECT c.run from coadd c, runtag rt where rt.run=c.run and c.tilename='%s' and rt.tag='%s' and c.band is null" % (__tilename__, __config__['data_release'].upper()), array=True)
 		else:
@@ -70,6 +70,24 @@ def GenerateRandomPosition():
 	subprocess.call(['./SetTilename.py',__tilename__])
 	subprocess.call(['./BuildPosGrid.py','--seed',__config__['seed_position'],'--density',__config__['density'],'--tiles','tilename.fits','--tilecol','tilename','--outdir','./'])
 
+	return __tilename__+'.fits'
+
+def GetZeropoint(RunConfig, DerivedConfig,BalrogConfig, ext=0, zpkey='SEXMGZPT'):
+	if BalrogConfig['band']=='det':
+		return 30.0
+	else:
+		header = pyfits.open(BalrogConfig['image'])[ext].header
+		return header[zpkey]
+
+def DoNosimRun(position_file,image_files,psf_files,bands):
+
+	for band_ in xrange(len(bands)):
+		band = bands[band_]
+		img  = image_files[band_]
+		psf  = psf_files[band_]
+		
+		
+
 
 if __name__ == '__main__':
 
@@ -84,7 +102,12 @@ if __name__ == '__main__':
 	CopyAstrometry()
 	print 'Copied astrometry files.'
 
-	DownloadImages()
+	images, psfs, bands, = DownloadImages()
 	print 'Downloaded images.'
+
+	positions = GenerateRandomPosition()
+	print 'Positions generated.'
+
+	
 
 	print 'Done tile:',__tilename__

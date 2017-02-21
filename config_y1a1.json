@@ -6,5 +6,22 @@
 	"seed_position":626,
 	"seed_balrog":939,
 	"data_release":"y1a1_coadd",
-	"density":100
+	"density":100,
+	"swarp-config":"20150806_default.swarp",
+
+	"balrog": {"fulltraceback": true,
+		 "pyconfig": "y1a1_off.py",
+		"sexpath": "/cvmfs/des.opensciencegrid.org/2015_Q2/eeups/SL6/eups/packages/Linux64/sextractor/2.19.3+0/bin/sex",
+		"catfitstype": "ldac",
+		"systemcmd": "popen",
+		"sexparam": "20150806_sex.param_diskonly",
+		"catalog": "CMC_originalR_v1_100-n.fits",
+		"ngal": 1000, "sexnnw": "20150806_sex.nnw",
+		"useshell": false, "sexconv": "20150806_sex.conv",
+		"nosimsexparam": "20150806_sex.param_diskonly",
+		"retrycmd": false,
+		"slrdir": ".",
+		"sexconfig": "20150806_sex.config"}
+
+	"balrog_path":"/cvmfs/lsst.opensciencegrid.org/fnal/products/Linux64/external/balrog/2015-05-19/balrog.py"
 }
