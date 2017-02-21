@@ -60,7 +60,6 @@ def DownloadImages():
 		subprocess.call(['funpack','-v','-D','-O',image_.split('/')[-1].replace('.fits.fz', '.fits'),image_.split('/')[-1]])
 	for psf_ in psfs:
 		subprocess.call(['wget','--quiet','--no-check-certificate',psf_,'-O',psf_.split('/')[-1]])
-
 	return [ images, psfs, bands ]
 
 def GenerateRandomPosition():
@@ -70,14 +69,11 @@ def GenerateRandomPosition():
 	subprocess.call(['rm','-f','tilename.fits',__tilename__+'.fits'])
 
 	subprocess.call(['./SetTilename.py',__tilename__])
-	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']),'--density',str(__config__['density']),'--tiles','tilename.fits','--tilecol','tilename','--outdir','./'])
-
-	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
-	__config__['balrog']['ngal'] = ngal
+	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']),'--density',str(__config__['density']),'--tiles','tilename.fits','--tilecol','tilename','--outdir','./','--iterateby','1'])
 
 	return __tilename__+'.fits'
 
-def GetZeropoint(image,band, ext=0, zpkey='SEXMGZPT'):
+def GetZeroPoint(image,band, ext=0, zpkey='SEXMGZPT'):
 	if band == 'det':
 		return 30.0
 	else:
@@ -91,11 +87,11 @@ def RunBalrog(d):
 		if type(d[key])==bool:
 			if d[key]:
 				cmd.append('--%s' %key)
-	else:
-		cmd.append('--%s' %key)
-		cmd.append(str(d[key]))
+		else:
+			cmd.append('--%s' %key)
+			cmd.append(str(d[key]))
 
-	balrog.BalrogFunction(args=cmd, syslog=__config__['log'])
+	balrog.BalrogFunction(args=cmd)
 
 def DoNosimRun(position_file,image_files,psf_files,bands):
 
@@ -104,6 +100,13 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 	command['imageonly'] = False
 	command['nodraw'] = True
 	command['nonosim'] = True
+
+	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
+	command['ngal'] = ngal
+	command['tile'] = __tilename__
+	command['slr']  = __config__['path_slr'].split('/')[-1]
+	command['cat']  = __config__['path_incat'].split('/')[-1]
+	command['poscat'] = '%s.fits' % __tilename__
 
 	for band_ in xrange(1,len(bands)):
 		band = bands[band_]
@@ -116,11 +119,10 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 		command['image'] = image_files[band_]
 		command['outdir'] = './'+band+'/'
 		command['zeropoint'] = GetZeroPoint(image_files[band_],band)
+		command['band'] = band
 
 		RunBalrog(command)
 		
-		
-
 
 if __name__ == '__main__':
 
@@ -136,15 +138,16 @@ if __name__ == '__main__':
 	print 'Copied astrometry files.'
 
 	images, psfs, bands = DownloadImages()
-	for img_ in xrange(len(images)):
-		images[img_] = images[img_].split('/')[-1].replace('.fits.fz','.fits')
+	for image_ in xrange(len(images)):
+		images[image_] = images[image_].split('/')[-1].replace('.fits.fz','.fits')
 	for psf_ in xrange(len(psfs)):
 		psfs[psf_] = psfs[psf_].split('/')[-1]
 	print 'Downloaded images.'
 
-	positions = GenerateRandomPosition()
+	#positions = GenerateRandomPosition()
+	positions = __tilename__+'.fits'
 	print 'Positions generated.'
 
-	
+	DoNosimRun(positions,images,psfs,bands)
 
 	print 'Done tile:',__tilename__
