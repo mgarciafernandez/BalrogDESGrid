@@ -76,19 +76,62 @@ def GenerateRandomPosition():
 
 	return __tilename__+'.fits'
 
-def GetZeropoint(RunConfig, DerivedConfig,BalrogConfig, ext=0, zpkey='SEXMGZPT'):
-	if BalrogConfig['band']=='det':
+def GetZeropoint(image,band, ext=0, zpkey='SEXMGZPT'):
+	if band == 'det':
 		return 30.0
 	else:
-		header = pyfits.open(BalrogConfig['image'])[ext].header
+		header = pyfits.open(image)[ext].header
 		return header[zpkey]
+def Dict2Cmd(d):
+
+    l = ['python', '-s', __config__['balrog_path']]
+
+    for key in d.keys():
+        if type(d[key])==bool:
+            if d[key]:
+                l.append('--%s' %key)
+        else:
+            l.append('--%s' %key)
+            l.append(str(d[key]))
+
+    return l
+
+
+def RunBalrog(d):
+	cmd = []
+
+	for key in d.keys():
+	if type(d[key])==bool:
+		if d[key]:
+			cmd.append('--%s' %key)
+	else:
+		cmd.append('--%s' %key)
+		cmd.append(str(d[key]))
+
+	balrog.BalrogFunction(args=cmd, syslog=__config__['log'])
+
 
 def DoNosimRun(position_file,image_files,psf_files,bands):
 
-	for band_ in xrange(len(bands)):
+	command = {}
+	command = __config__['balrog'].copy()
+	command['imageonly'] = False
+	command['nodraw'] = True
+	command['nonosim'] = True
+
+	for band_ in xrange(1,len(bands)):
 		band = bands[band_]
 		img  = image_files[band_]
 		psf  = psf_files[band_]
+
+		command['detpsf'] = psf_files[0]
+		command['detimage'] = image_files[0]
+		command['psf'] = psf_files[band_]
+		command['image'] = image_files[band_]
+		command['outdir'] = './'+band+'/'
+		command['zeropoint'] = GetZeroPoint(image_files[band_],band)
+
+		RunBalrog(command)
 		
 		
 
