@@ -1,0 +1,10 @@
+{
+	"path_outfiles":"/pnfs/des/persistent/mgarcia/balrog_Y1_wide/",
+	"path_astrometry":"/pnfs/des/persistent/mgarcia/balrog_Y1_wide/y1_astromatic_config_files.tar.gz",
+	"path_slr":"/pnfs/des/persistent/mgarcia/balrog_Y1_wide/y1a1_wide_slr_wavg_zpshift2.fit",
+	"path_incat":"/pnfs/des/persistent/mgarcia/balrog_Y1_wide/CMC_originalR_v1_100-n.fits",
+	"seed_position":626,
+	"seed_balrog":939,
+	"data_release":"y1a1_coadd",
+	"density":100
+}
