@@ -5,7 +5,7 @@ import subprocess
 import json
 import desdb
 import pyfits
-import runbalrog
+import balrog
 
 #------------------ GLOBAL VARIABLES ---------------
 
@@ -98,6 +98,19 @@ def Dict2Cmd(d):
 
     return l
 
+def RunBalrog(d):
+	cmd = []
+
+	for key in d.keys():
+		if type(d[key])==bool:
+			if d[key]:
+				cmd.append('--%s' %key)
+	else:
+		cmd.append('--%s' %key)
+		cmd.append(str(d[key]))
+
+	balrog.BalrogFunction(args=cmd, syslog=__config__['log'])
+
 def DoNosimRun(position_file,image_files,psf_files,bands):
 
 	command = {}
@@ -118,7 +131,7 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 		command['outdir'] = './'+band+'/'
 		command['zeropoint'] = GetZeroPoint(image_files[band_],band)
 
-		runbalrog.RunBalrog(command)
+		RunBalrog(command)
 		
 		
 
