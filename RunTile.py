@@ -70,7 +70,7 @@ def GenerateRandomPosition():
 	subprocess.call(['rm','-f','tilename.fits',__tilename__+'.fits'])
 
 	subprocess.call(['./SetTilename.py',__tilename__])
-	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']),'--density',__config__['density'],'--tiles','tilename.fits','--tilecol','tilename','--outdir','./'])
+	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']),'--density',str(__config__['density']),'--tiles','tilename.fits','--tilecol','tilename','--outdir','./'])
 
 	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
 	__config__['balrog']['ngal'] = ngal
