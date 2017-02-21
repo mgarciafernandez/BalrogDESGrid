@@ -122,6 +122,63 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 
 		RunBalrog(command)
 
+def DoNosimRun(position_file,image_files,psf_files,bands):
+
+	command = {}
+	command = __config__['balrog'].copy()
+	command['imageonly'] = False
+	command['nodraw'] = True
+	command['nonosim'] = True
+
+	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
+	command['ngal'] = ngal
+	command['tile'] = __tilename__
+	command['poscat'] = '%s.fits' % __tilename__
+	command['seed'] = __config__['seed_balrog']
+
+	for band_ in xrange(1,len(bands)):
+		band = bands[band_]
+		img  = image_files[band_]
+		psf  = psf_files[band_]
+
+		command['detpsf'] = psf_files[0]
+		command['detimage'] = image_files[0]
+		command['psf'] = psf_files[band_]
+		command['image'] = image_files[band_]
+		command['outdir'] = './'+band+'/'
+		command['zeropoint'] = GetZeroPoint(image_files[band_],band)
+		command['band'] = band
+
+		RunBalrog(command)
+
+def DoSimRun(position_file,image_files,psf_files,bands):
+
+	command = {}
+	command = __config__['balrog'].copy()
+	#command['imageonly'] = False
+	command['nodraw'] = True
+	command['nonosim'] = True
+
+	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
+	command['ngal'] = ngal
+	command['tile'] = __tilename__
+	command['poscat'] = '%s.fits' % __tilename__
+	command['seed'] = __config__['seed_balrog']
+
+	for band_ in xrange(1,len(bands)):
+		band = bands[band_]
+		img  = image_files[band_]
+		psf  = psf_files[band_]
+
+		command['detpsf'] = psf_files[0]
+		command['detimage'] = image_files[0]
+		command['psf'] = psf_files[band_]
+		command['image'] = image_files[band_]
+		command['outdir'] = './'+band+'/'
+		command['zeropoint'] = GetZeroPoint(image_files[band_],band)
+		command['band'] = band
+
+		RunBalrog(command)
 
 if __name__ == '__main__':
 
@@ -148,6 +205,9 @@ if __name__ == '__main__':
 	print 'Positions generated.'
 
 	DoNosimRun(positions,images,psfs,bands)
-	
+	print 'Nosim done.'
+
+	DoSimRun(positions,images,psfs,bands)
+	print 'Sim done.'
 
 	print 'Done tile:',__tilename__
