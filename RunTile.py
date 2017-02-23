@@ -12,6 +12,7 @@ import balrog
 __config__   = None
 __tilename__ = None
 __bands__    = ['g','r','i','z','Y']
+__detbands__ = ['r','i','z']
 
 #---------------------------------------------------
 
@@ -94,7 +95,6 @@ def RunBalrog(d):
 	balrog.BalrogFunction(args=cmd)
 
 def DoNosimRun(position_file,image_files,psf_files,bands):
-
 	command = {}
 	command = __config__['balrog'].copy()
 	command['imageonly'] = False
@@ -139,9 +139,87 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 
 	for band_ in bands:
 		subprocess.call(['rm','-rf',band_])
+
+def RunSwarp(imgs, wts, iext=0, wext=1):
+	config = {'RESAMPLE': 'N', \
+              'COMBINE': 'Y', \
+              'COMBINE_TYPE': 'CHI-MEAN', \
+              'SUBTRACT_BACK': 'N', \
+              'DELETE_TMPFILES': 'Y', \
+              'WEIGHT_TYPE': 'MAP_WEIGHT', \
+              'PIXELSCALE_TYPE': 'MANUAL', \
+              'PIXEL_SCALE': str(0.270), \
+              'CENTER_TYPE': 'MANUAL', \
+              'HEADER_ONLY': 'N', \
+              'WRITE_XML': 'N', \
+              'VMEM_DIR': os.path.dirname(imgs[0]), \
+              'MEM_MAX': '1024', \
+              'COMBINE_BUFSIZE': '1024'}
+
+
+	header = pyfits.open(imgs[0])[iext].header
+
+	xsize  = header['NAXIS1']
+	ysize  = header['NAXIS2']
+	config['IMAGE_SIZE'] = '%i,%i' %(xsize,ysize)
+
+	xc = header['CRVAL1']
+	yc = header['CRVAL2']
+	config['CENTER'] = '%f,%f' %(xc,yc)
+
+	ims = []
+	ws  = []
+	for i in range(len(imgs)):
+		ims.append( '%s[%i]' %(imgs[i],iext) )
+		ws.append(  '%s[%i]' %(wts[i],wext)  )
+
+	ims = ','.join(ims)
+	ws  = ','.join(ws)
+	
+	subprocess.call(['mkdir','coadd'])
+
+	imout = './coadd/%s_det.fits' % __tilename__
+	wout  = imout.replace('.fits', '_weight.fits')
+	config['IMAGEOUT_NAME']  = imout
+	config['WEIGHTOUT_NAME'] = wout
+    
+	command = [__config__['swarp'], ims, '-c', __config__['swarp-config'], '-WEIGHT_IMAGE', ws]
+	for key in config:
+		command.append( '-%s'%(key) )
+		command.append( config[key] )
+
+	subprocess.call( command )
+
+def BuildDetectionCoadd(position_file,image_files,psf_files,bands):
+	command = {}
+	command = __config__['balrog'].copy()
+	command['imageonly']    = True
+	command['noweightread'] = True
+
+	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
+	command['ngal'] = ngal
+	command['tile'] = __tilename__
+	command['poscat'] = '%s.fits' % __tilename__
+	command['seed'] = __config__['seed_balrog']
+
+	ims = []
+	wts = []
+	for detband_ in __detbands__:
+		command['psf']    = psf_files[__bands__.index(detband_)+1]
+		command['image']  = image_files[__bands__.index(detband_)+1]
+		command['outdir'] = './'+band+'/'
+		command['band']   = detband_
+		command['zeropoint'] = GetZeropoint(image_files[__bands__.index(detband_)+1])
+
+		RunBalrog(command)
+
+		ims.append( './%s/balrog_image/DES2051-5248_%s.sim.fits' % (detband_,detband_) )
+		wts.append( command['image'] )
+
+	RunSwarp(ims,wts)
+	
 		
 def DoSimRun(position_file,image_files,psf_files,bands):
-
 	command = {}
 	command = __config__['balrog'].copy()
 	command['imageonly'] = False
@@ -215,6 +293,9 @@ if __name__ == '__main__':
 
 	DoNosimRun(positions,images,psfs,bands)
 	print 'Nosim done.'
+
+	BuildDetectionCoadd(images,images)
+	print 'Coadd build.'
 	
 	#DoSimRun(positions,images,psfs,bands)
 	#print 'Sim done.'
