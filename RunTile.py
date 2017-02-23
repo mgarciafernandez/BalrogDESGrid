@@ -71,7 +71,7 @@ def GenerateRandomPosition():
 	subprocess.call(['rm','-f','tilename.fits',__tilename__+'.fits'])
 
 	subprocess.call(['./SetTilename.py',__tilename__])
-	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']),'--density',str(__config__['density']),'--tiles','tilename.fits','--tilecol','tilename','--outdir','./','--iterateby','1'])
+	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']+HashTile(__tilename__)),'--density',str(__config__['density']),'--tiles','tilename.fits','--tilecol','tilename','--outdir','./','--iterateby','1'])
 
 	return __tilename__+'.fits'
 
@@ -106,7 +106,7 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 	command['ngal'] = ngal
 	command['tile'] = __tilename__
 	command['poscat'] = '%s.fits' % __tilename__
-	command['seed'] = __config__['seed_balrog']
+	command['seed'] = __config__['seed_balrog']+HashTile(__tilename__)
 
 	for band_ in xrange(1,len(bands)):
 		band = bands[band_]
@@ -135,9 +135,6 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 	hdu = pyfits.BinTableHDU.from_columns( nosim_cols )
 	hdu.writeto( '%s_nosim.fits'%__tilename__,clobber=True )
 
-	#for band_ in xrange(1,len(bands)):
-	#	subprocess.call( [ 'rm','-rf','./%s' % bands[band_] ] )
-	
 
 def RunSwarp(imgs, wts, iext=0, wext=1):
 	config = {'RESAMPLE': 'N', \
@@ -201,21 +198,22 @@ def BuildDetectionCoadd(position_file,image_files,psf_files,bands):
 	command['ngal'] = ngal
 	command['tile'] = __tilename__
 	command['poscat'] = '%s.fits' % __tilename__
-	command['seed'] = __config__['seed_balrog']
+	command['seed'] = __config__['seed_balrog']+HashTile(__tilename__)
 
 	ims = []
 	wts = []
-	for detband_ in __detbands__:
-		command['psf']    = psf_files[__bands__.index(detband_)+1]
-		command['image']  = image_files[__bands__.index(detband_)+1]
-		command['outdir'] = './'+detband_+'/'
-		command['band']   = detband_
-		command['zeropoint'] = GetZeroPoint(image_files[__bands__.index(detband_)+1],detband_)
+	for band_ in __bands__:
+		command['psf']    = psf_files[__bands__.index(band_)+1]
+		command['image']  = image_files[__bands__.index(band_)+1]
+		command['outdir'] = './'+band_+'/'
+		command['band']   = band_
+		command['zeropoint'] = GetZeroPoint(image_files[__bands__.index(band_)+1],band_)
 
 		RunBalrog(command)
 
-		ims.append( './%s/balrog_image/DES2051-5248_%s.sim.fits' % (detband_,detband_) )
-		wts.append( command['image'] )
+		if band_ in __detbands__:
+			ims.append( './%s/balrog_image/DES2051-5248_%s.sim.fits' % (band_,band_) )
+			wts.append( command['image'] )
 
 	imout, wout = RunSwarp(ims,wts)
 
@@ -233,7 +231,7 @@ def DoSimRun(position_file,image_files,psf_files,bands,coadd_image, coadd_weight
 	command['ngal'] = ngal
 	command['tile'] = __tilename__
 	command['poscat'] = '%s.fits' % __tilename__
-	command['seed'] = __config__['seed_balrog']
+	command['seed'] = __config__['seed_balrog']+HashTile(__tilename__)
 
 	for band_ in xrange(1,len(bands)):
 		band = bands[band_]
@@ -259,6 +257,11 @@ def DoSimRun(position_file,image_files,psf_files,bands,coadd_image, coadd_weight
 		for col_ in nosim_files[-1].columns:
 			if col_.name != 'VECTOR_ASSOC':
 				nosim_cols.append( pyfits.Column(name=(col_.name+'_'+bands[band_]).lower(), format=col_.format, array=nosim_files[-1][col_.name] ) )
+			else:
+				truth_files = pyfits.open('./%s/balrog_cat/DES2051-5248_%s.truthcat.sim.fits'%(bands[band_],bands[band_]) )[1].data
+				_col_ = truth_files.columns.names.index('balrog_index')
+				nosim_cols.append( pyfits.Column(name=('balrog_index_'+bands[band_]).lower(), format='D', array=nosim_files[-1]['VECTOR_ASSOC'][:,_col_] ) )
+
 
 	hdu = pyfits.BinTableHDU.from_columns( nosim_cols )
 	hdu.writeto( '%s_sim.fits'%__tilename__,clobber=True )
@@ -281,6 +284,14 @@ def UploadToPersistentLocation():
 	subprocess.call( ['ifdh','cp','%s_sim.fits' % __tilename__,__config__['path_outfiles']] )
 	subprocess.call( ['ifdh','cp','%s_truth.fits' % __tilename__,__config__['path_outfiles']] )
 
+def HashTile(tilename):
+	"""
+	Stocastic function that given a tile, returns an int.
+	This is intended to be used as a seed-offset between tiles.
+	"""
+	seedoffset = int( tilename.translate(None,'DES-') )
+	return seedoffset
+	
 
 
 if __name__ == '__main__':
@@ -315,5 +326,11 @@ if __name__ == '__main__':
 	
 	DoSimRun(positions,images,psfs,bands,coadd_image, coadd_weights)
 	print 'Sim done.'
+
+	StackTruth()
+	print 'Truth catalog stacked.'
+
+	UploadToPersistent()
+	print 'Copied to persistent.'
 
 	print 'Done tile:',__tilename__
