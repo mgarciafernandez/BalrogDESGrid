@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import subprocess
 import json
@@ -114,8 +115,6 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 
 		command['detpsf'] = psf_files[0]
 		command['detimage'] = image_files[0]
-		command['detpsf'] = psf_files[band_]
-		command['detimage'] = image_files[band_]
 		command['psf'] = psf_files[band_]
 		command['image'] = image_files[band_]
 		command['outdir'] = './'+band+'/'
@@ -134,11 +133,11 @@ def DoNosimRun(position_file,image_files,psf_files,bands):
 				nosim_cols.append( pyfits.Column(name=(col_.name+'_'+bands[band_]).lower(), format=col_.format, array=nosim_files[-1][col_.name] ) )
 
 	hdu = pyfits.BinTableHDU.from_columns( nosim_cols )
-	hdu.writeto( '%s_nosim.fits'%__tilename__ )
-	
+	hdu.writeto( '%s_nosim.fits'%__tilename__,clobber=True )
 
-	for band_ in bands:
-		subprocess.call(['rm','-rf',band_])
+	#for band_ in xrange(1,len(bands)):
+	#	subprocess.call( [ 'rm','-rf','./%s' % bands[band_] ] )
+	
 
 def RunSwarp(imgs, wts, iext=0, wext=1):
 	config = {'RESAMPLE': 'N', \
@@ -190,6 +189,8 @@ def RunSwarp(imgs, wts, iext=0, wext=1):
 
 	subprocess.call( command )
 
+	return imout, wout
+
 def BuildDetectionCoadd(position_file,image_files,psf_files,bands):
 	command = {}
 	command = __config__['balrog'].copy()
@@ -207,24 +208,26 @@ def BuildDetectionCoadd(position_file,image_files,psf_files,bands):
 	for detband_ in __detbands__:
 		command['psf']    = psf_files[__bands__.index(detband_)+1]
 		command['image']  = image_files[__bands__.index(detband_)+1]
-		command['outdir'] = './'+band+'/'
+		command['outdir'] = './'+detband_+'/'
 		command['band']   = detband_
-		command['zeropoint'] = GetZeropoint(image_files[__bands__.index(detband_)+1])
+		command['zeropoint'] = GetZeroPoint(image_files[__bands__.index(detband_)+1],detband_)
 
 		RunBalrog(command)
 
 		ims.append( './%s/balrog_image/DES2051-5248_%s.sim.fits' % (detband_,detband_) )
 		wts.append( command['image'] )
 
-	RunSwarp(ims,wts)
+	imout, wout = RunSwarp(ims,wts)
+
+	return imout, wout
 	
 		
-def DoSimRun(position_file,image_files,psf_files,bands):
+def DoSimRun(position_file,image_files,psf_files,bands,coadd_image, coadd_weights):
 	command = {}
 	command = __config__['balrog'].copy()
-	command['imageonly'] = False
-	command['nodraw'] = True
-	command['nonosim'] = True
+	command['nonosim']      = True
+	command['noweightread'] = True
+	command['nodraw']       = True
 
 	ngal = len(pyfits.open( '%s.fits' % __tilename__)[1].data)
 	command['ngal'] = ngal
@@ -237,10 +240,9 @@ def DoSimRun(position_file,image_files,psf_files,bands):
 		img  = image_files[band_]
 		psf  = psf_files[band_]
 
-		command['detpsf'] = psf_files[0]
-		command['detimage'] = image_files[0]
-		command['detpsf'] = psf_files[band_]
-		command['detimage'] = image_files[band_]
+		command['detpsf']    = psf_files[0]
+		command['detimage']  = coadd_image
+		command['detweight'] = coadd_weights
 		command['psf'] = psf_files[band_]
 		command['image'] = image_files[band_]
 		command['outdir'] = './'+band+'/'
@@ -259,11 +261,25 @@ def DoSimRun(position_file,image_files,psf_files,bands):
 				nosim_cols.append( pyfits.Column(name=(col_.name+'_'+bands[band_]).lower(), format=col_.format, array=nosim_files[-1][col_.name] ) )
 
 	hdu = pyfits.BinTableHDU.from_columns( nosim_cols )
-	hdu.writeto( '%s_nosim.fits'%__tilename__ )
+	hdu.writeto( '%s_sim.fits'%__tilename__,clobber=True )
+
+def StackTruth():
+	nosim_files = []
+	nosim_cols  = []
+	for band_ in xrange(1,len(bands)):
+		nosim_files.append( pyfits.open('./%s/balrog_cat/DES2051-5248_%s.truthcat.sim.fits'%(bands[band_],bands[band_]) )[2].data )
+
+		for col_ in nosim_files[-1].columns:
+			nosim_cols.append( pyfits.Column(name=(col_.name+'_'+bands[band_]).lower(), format=col_.format, array=nosim_files[-1][col_.name] ) )
+
+	hdu = pyfits.BinTableHDU.from_columns( nosim_cols )
+	hdu.writeto( '%s_truth.fits'%__tilename__,clobber=True )
 	
 
-	for band_ in bands:
-		subprocess.call(['rm','-rf',band_])
+def UploadToPersistentLocation():
+	subprocess.call( ['ifdh','cp','%s_nosim.fits' % __tilename__,__config__['path_outfiles']] )
+	subprocess.call( ['ifdh','cp','%s_sim.fits' % __tilename__,__config__['path_outfiles']] )
+	subprocess.call( ['ifdh','cp','%s_truth.fits' % __tilename__,__config__['path_outfiles']] )
 
 
 
@@ -294,10 +310,10 @@ if __name__ == '__main__':
 	DoNosimRun(positions,images,psfs,bands)
 	print 'Nosim done.'
 
-	BuildDetectionCoadd(images,images)
+	coadd_image, coadd_weights = BuildDetectionCoadd(images,images,psfs,bands)
 	print 'Coadd build.'
 	
-	#DoSimRun(positions,images,psfs,bands)
-	#print 'Sim done.'
+	DoSimRun(positions,images,psfs,bands,coadd_image, coadd_weights)
+	print 'Sim done.'
 
 	print 'Done tile:',__tilename__
