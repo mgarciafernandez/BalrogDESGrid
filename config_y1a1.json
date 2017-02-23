@@ -7,6 +7,7 @@
 	"seed_balrog":939,
 	"data_release":"y1a1_coadd",
 	"density":100,
+	"swarp":"swarp",
 	"swarp-config":"20150806_default.swarp",
 
 	"balrog": {"fulltraceback": true,
@@ -25,6 +26,5 @@
 		"slrdir": ".",
 		"sexconfig": "20150806_sex.config"},
 
-	"balrog_path":"/cvmfs/lsst.opensciencegrid.org/fnal/products/Linux64/external/balrog/2015-05-19/balrog.py",
-	"log":"balrog_log.log"
+	"balrog_path":"/cvmfs/lsst.opensciencegrid.org/fnal/products/Linux64/external/balrog/2015-05-19/balrog.py"
 }
