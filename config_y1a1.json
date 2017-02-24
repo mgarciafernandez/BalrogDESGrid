@@ -6,7 +6,7 @@
 	"seed_position":626,
 	"seed_balrog":939,
 	"data_release":"y1a1_coadd",
-	"density":100,
+	"density":10000,
 	"swarp":"swarp",
 	"swarp-config":"20150806_default.swarp",
 

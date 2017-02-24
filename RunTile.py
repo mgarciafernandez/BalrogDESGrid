@@ -71,7 +71,7 @@ def GenerateRandomPosition():
 	subprocess.call(['rm','-f','tilename.fits',__tilename__+'.fits'])
 
 	subprocess.call(['./SetTilename.py',__tilename__])
-	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']+HashTile(__tilename__)),'--density',str(__config__['density']),'--tiles','tilename.fits','--tilecol','tilename','--outdir','./','--iterateby','1'])
+	subprocess.call(['./BuildPosGrid.py','--seed',str(__config__['seed_position']+HashTile(__tilename__)),'--density',str(__config__['density']),'--tiles','tilename.fits','--tilecol','tilename','--outdir','./'])
 
 	return __tilename__+'.fits'
 
@@ -202,17 +202,17 @@ def BuildDetectionCoadd(position_file,image_files,psf_files,bands):
 
 	ims = []
 	wts = []
-	for band_ in __bands__:
-		command['psf']    = psf_files[__bands__.index(band_)+1]
-		command['image']  = image_files[__bands__.index(band_)+1]
-		command['outdir'] = './'+band_+'/'
-		command['band']   = band_
-		command['zeropoint'] = GetZeroPoint(image_files[__bands__.index(band_)+1],band_)
+	for band_ in xrange(1,len(bands)):
+		command['psf']    = psf_files[band_]
+		command['image']  = image_files[band_]
+		command['outdir'] = './'+bands[band_]+'/'
+		command['band']   = bands[band_]
+		command['zeropoint'] = GetZeroPoint(image_files[band_],bands[band_])
 
 		RunBalrog(command)
 
-		if band_ in __detbands__:
-			ims.append( './%s/balrog_image/DES2051-5248_%s.sim.fits' % (band_,band_) )
+		if bands[band_] in __detbands__:
+			ims.append( './%s/balrog_image/DES2051-5248_%s.sim.fits' % (bands[band_],bands[band_]) )
 			wts.append( command['image'] )
 
 	imout, wout = RunSwarp(ims,wts)
@@ -270,7 +270,7 @@ def StackTruth():
 	nosim_files = []
 	nosim_cols  = []
 	for band_ in xrange(1,len(bands)):
-		nosim_files.append( pyfits.open('./%s/balrog_cat/DES2051-5248_%s.truthcat.sim.fits'%(bands[band_],bands[band_]) )[2].data )
+		nosim_files.append( pyfits.open('./%s/balrog_cat/DES2051-5248_%s.truthcat.sim.fits'%(bands[band_],bands[band_]) )[1].data )
 
 		for col_ in nosim_files[-1].columns:
 			nosim_cols.append( pyfits.Column(name=(col_.name+'_'+bands[band_]).lower(), format=col_.format, array=nosim_files[-1][col_.name] ) )
@@ -314,8 +314,7 @@ if __name__ == '__main__':
 		psfs[psf_] = psfs[psf_].split('/')[-1]
 	print 'Downloaded images.'
 
-	#positions = GenerateRandomPosition()
-	positions = __tilename__+'.fits'
+	positions = GenerateRandomPosition()
 	print 'Positions generated.'
 
 	DoNosimRun(positions,images,psfs,bands)
@@ -330,7 +329,7 @@ if __name__ == '__main__':
 	StackTruth()
 	print 'Truth catalog stacked.'
 
-	UploadToPersistent()
+	UploadToPersistentLocation()
 	print 'Copied to persistent.'
 
 	print 'Done tile:',__tilename__

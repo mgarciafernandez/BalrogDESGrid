@@ -44,7 +44,10 @@ setup scikitlearn
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/cvmfs/lsst.opensciencegrid.org/uk/shape-measurement/im3shape/im3shape-2015-08-05/ups/lapack/v3_5_0/Linux64bit+2.6-2.12-e7-prof/lib:/cvmfs/lsst.opensciencegrid.org/uk/shape-measurement/im3shape/im3shape-2015-08-05/ups/gcc/v4_9_2/Linux64bit+2.6-2.12/lib64
 export PYTHONPATH=${HOME}/Balrog:$PYTHONPATH
 
-${HOME}/RunTile.py $3 $4
+ifdh cp $5 .
+tar -zxvf BalrogDESGrid.tar.gz --strip-components 1
+
+${HOME}/RunTile.py $3 $4 
 
 date >> log
 
